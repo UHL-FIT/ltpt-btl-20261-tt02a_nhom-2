@@ -1,4 +1,16 @@
+<<<<<<< HEAD
 venv/
 __pycache__/
 *.pyc
 .vscode/
+=======
+__pycache__/
+*.pyc
+*.log
+*.spec
+build/
+dist/
+.venv/
+.idea/
+.vscode/
+>>>>>>> 12b557d1f3e0a53ecd3a08e65497bcf931436c77
