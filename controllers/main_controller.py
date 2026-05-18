@@ -1,7 +1,7 @@
 from tkinter import messagebox, filedialog
 import threading
 from views.main_window import MainWindow
-
+from utils.helpers import show_import_guide
 class MainController:
     def __init__(self, root, exam_model, student_model, stats_model):
         self.root = root
@@ -102,7 +102,9 @@ class MainController:
     def delete_student(self):
         selected = self.view.tree.selection()
         if not selected:
-            messagebox.showinfo("Thông báo", "Vui lòng chọn một thí sinh để xóa!")
+            messagebox.showinfo("Thông báo", "Vui lòng chọn một thí sinh để xóa!", parent=self.root)
+            self.root.lift()
+            self.root.focus_force()
             return
             
         item = self.view.tree.item(selected[0])
@@ -115,34 +117,53 @@ class MainController:
                 self.refresh_table()
                 messagebox.showinfo("Thành công", "Đã xóa thành công!")
             except Exception as e:
-                messagebox.showerror("Lỗi", str(e))
+                messagebox.showerror("Lỗi", str(e), parent=self.root)
+                self.root.lift()
+                self.root.focus_force()
 
     def import_csv(self):
-        filepath = filedialog.askopenfilename(
-            title="Chọn file CSV thí sinh",
-            filetypes=[("CSV files", "*.csv")]
-        )
-        if filepath:
-            self.view.status_var.set("Đang import dữ liệu... Vui lòng chờ")
-            self.root.update()
-            
-            def run_import():
-                try:
-                    result_msg = self.student_model.import_csv(filepath)
-                    self.root.after(0, lambda: self.on_import_success(result_msg))
-                except Exception as e:
-                    self.root.after(0, lambda: self.on_import_error(str(e)))
-                    
-            threading.Thread(target=run_import, daemon=True).start()
+        cols_info = [
+            ("student_id", "Mã thí sinh (Bắt buộc, không trùng lặp)"),
+            ("name", "Họ tên thí sinh"),
+            ("gender", "Giới tính (Nam/Nữ/Khác)"),
+            ("class_name", "Lớp"),
+            ("exam_id", "Mã đề thi (Bắt buộc, phải tồn tại trong hệ thống)"),
+            ("answers", "Đáp án (Bắt buộc, cách nhau bởi dấu phẩy, vd: A,B,C)")
+        ]
+        sample = "SV001,Nguyễn Văn A,Nam,12A1,DE01,\"A, B, C, D, A, B\""
+        
+        def on_accept():
+            filepath = filedialog.askopenfilename(
+                title="Chọn file CSV thí sinh",
+                filetypes=[("CSV files", "*.csv")]
+            )
+            if filepath:
+                self.view.status_var.set("Đang import dữ liệu... Vui lòng chờ")
+                self.root.update()
+                
+                def run_import():
+                    try:
+                        result_msg = self.student_model.import_csv(filepath)
+                        self.root.after(0, lambda: self.on_import_success(result_msg))
+                    except Exception as e:
+                        self.root.after(0, lambda: self.on_import_error(str(e)))
+                        
+                threading.Thread(target=run_import, daemon=True).start()
+
+        show_import_guide(self.root, "Hướng dẫn Import Danh Sách Thí Sinh", cols_info, sample, on_accept)
 
     def on_import_success(self, msg):
         self.refresh_table()
         self.view.status_var.set("Sẵn sàng.")
-        messagebox.showinfo("Import thành công", msg)
+        messagebox.showinfo("Import thành công", msg, parent=self.root)
+        self.root.lift()
+        self.root.focus_force()
         
     def on_import_error(self, err_msg):
         self.view.status_var.set("Lỗi import.")
-        messagebox.showerror("Lỗi Import", err_msg)
+        messagebox.showerror("Lỗi Import", err_msg, parent=self.root)
+        self.root.lift()
+        self.root.focus_force()
 
     def export_csv(self):
         filepath = filedialog.asksaveasfilename(
@@ -153,9 +174,13 @@ class MainController:
         if filepath:
             try:
                 self.student_model.export_csv(filepath)
-                messagebox.showinfo("Thành công", "Export dữ liệu thành công!")
+                messagebox.showinfo("Thành công", "Export dữ liệu thành công!", parent=self.root)
+                self.root.lift()
+                self.root.focus_force()
             except Exception as e:
-                messagebox.showerror("Lỗi Export", str(e))
+                messagebox.showerror("Lỗi Export", str(e), parent=self.root)
+                self.root.lift()
+                self.root.focus_force()
 
     def manage_exams(self):
         from controllers.exam_controller import ExamController

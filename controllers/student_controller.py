@@ -1,7 +1,9 @@
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 import tkinter as tk
+import threading
 from tkinter import ttk
 from views.student_window import StudentWindow
+from utils.helpers import show_import_guide
 
 class StudentController:
     def __init__(self, parent_root, student_model, exam_model, refresh_callback, student_id=None):
@@ -88,12 +90,18 @@ class StudentController:
         exam_id = self.view.combo_exam.get()
         
         if not all([student_id, name, class_name, exam_id]):
-            messagebox.showerror("Lỗi", "Vui lòng nhập đầy đủ thông tin")
+            messagebox.showerror("Lỗi", "Vui lòng nhập đầy đủ thông tin", parent=self.view.window)
+            self.view.window.lift()
+            self.view.window.focus_force()
+            self.view.entry_id.focus()
             return
             
         answers = [v.get() for v in self.view.combo_answers]
         if any(not a for a in answers):
-            messagebox.showerror("Lỗi", "Vui lòng chọn đầy đủ đáp án cho bài làm")
+            messagebox.showerror("Lỗi", "Vui lòng chọn đầy đủ đáp án cho bài làm", parent=self.view.window)
+            self.view.window.lift()
+            self.view.window.focus_force()
+            if self.view.combo_answers: self.view.combo_answers[0].focus()
             return
             
         answers_str = ",".join(answers)
@@ -101,13 +109,58 @@ class StudentController:
         try:
             if self.view.entry_id.cget("state") == "readonly":
                 self.student_model.update_student(student_id, name, gender, class_name, exam_id, answers_str)
-                messagebox.showinfo("Thành công", "Cập nhật thí sinh thành công")
+                messagebox.showinfo("Thành công", "Cập nhật thí sinh thành công", parent=self.view.window)
             else:
                 self.student_model.add_student(student_id, name, gender, class_name, exam_id, answers_str)
-                messagebox.showinfo("Thành công", "Thêm thí sinh thành công")
+                messagebox.showinfo("Thành công", "Thêm thí sinh thành công", parent=self.view.window)
                 
             self.refresh_callback()
             self.view.window.destroy()
             
         except Exception as e:
-            messagebox.showerror("Lỗi", str(e))
+            messagebox.showerror("Lỗi", str(e), parent=self.view.window)
+            self.view.window.lift()
+            self.view.window.focus_force()
+
+    def import_csv(self):
+        cols_info = [
+            ("student_id", "Mã thí sinh (Bắt buộc, không trùng lặp)"),
+            ("name", "Họ tên thí sinh"),
+            ("gender", "Giới tính (Nam/Nữ/Khác)"),
+            ("class_name", "Lớp"),
+            ("exam_id", "Mã đề thi (Bắt buộc, phải tồn tại trong hệ thống)"),
+            ("answers", "Đáp án (Bắt buộc, cách nhau bởi dấu phẩy, vd: A,B,C)")
+        ]
+        sample = "SV001,Nguyễn Văn A,Nam,12A1,DE01,\"A, B, C, D, A, B\""
+        
+        def on_accept():
+            filepath = filedialog.askopenfilename(
+                title="Chọn file CSV thí sinh",
+                filetypes=[("CSV files", "*.csv")]
+            )
+            if filepath:
+                self.view.window.title("Đang import dữ liệu...")
+                self.view.window.update()
+                
+                def run_import():
+                    try:
+                        result_msg = self.student_model.import_csv(filepath)
+                        self.view.window.after(0, lambda: self.on_import_success(result_msg))
+                    except Exception as e:
+                        self.view.window.after(0, lambda: self.on_import_error(str(e)))
+                        
+                threading.Thread(target=run_import, daemon=True).start()
+
+        show_import_guide(self.view.window, "Hướng dẫn Import Danh Sách Thí Sinh", cols_info, sample, on_accept)
+
+    def on_import_success(self, msg):
+        self.view.window.title("Thông tin Thí Sinh")
+        self.refresh_callback()
+        messagebox.showinfo("Import thành công", msg, parent=self.view.window)
+        self.view.window.destroy()
+        
+    def on_import_error(self, err_msg):
+        self.view.window.title("Thông tin Thí Sinh")
+        messagebox.showerror("Lỗi Import", err_msg, parent=self.view.window)
+        self.view.window.lift()
+        self.view.window.focus_force()

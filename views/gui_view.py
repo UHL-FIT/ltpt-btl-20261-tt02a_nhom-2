@@ -315,9 +315,15 @@ def hien_thi_form_sinh_vien(parent_root, is_edit=False, current_data=None):
         
         if not msv:
             messagebox.showwarning("Lỗi", "MSV không được để trống!", parent=top)
+            top.lift()
+            top.focus_force()
+            ent_msv.focus()
             return
         if not hoten:
             messagebox.showwarning("Lỗi", "Họ tên không được để trống!", parent=top)
+            top.lift()
+            top.focus_force()
+            ent_hoten.focus()
             return
             
         result.append({

@@ -57,6 +57,7 @@ class ExamWindow:
         
         ttk.Button(action_frame, text="🗑️ Xóa", style="Delete.TButton", command=self.controller.delete_exam).pack(side=tk.LEFT, padx=(0, 5))
         ttk.Button(action_frame, text="📂 Import CSV", style="Action.TButton", command=self.controller.import_exams).pack(side=tk.LEFT, padx=5)
+        ttk.Button(action_frame, text="💾 Export CSV", style="Action.TButton", command=self.controller.export_exams).pack(side=tk.LEFT, padx=5)
 
         # ---------------------------------------------------------
         # Right Panel content: Form

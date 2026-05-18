@@ -3,6 +3,7 @@ import tkinter as tk
 import threading
 from tkinter import ttk
 from views.exam_window import ExamWindow
+from utils.helpers import show_import_guide
 
 class ExamController:
     def __init__(self, parent_root, exam_model, on_change_callback):
@@ -63,11 +64,17 @@ class ExamController:
             try:
                 num = int(self.view.var_num_questions.get())
             except ValueError:
-                messagebox.showerror("Lỗi", "Số câu hỏi phải là số nguyên")
+                messagebox.showerror("Lỗi", "Số câu hỏi phải là số nguyên", parent=self.view.window)
+                self.view.window.lift()
+                self.view.window.focus_force()
+                self.view.entry_num.focus()
                 return
                 
         if num <= 0 or num > 200:
-            messagebox.showerror("Lỗi", "Số câu hỏi phải từ 1 đến 200")
+            messagebox.showerror("Lỗi", "Số câu hỏi phải từ 1 đến 200", parent=self.view.window)
+            self.view.window.lift()
+            self.view.window.focus_force()
+            self.view.entry_num.focus()
             return
             
         # Clear old grid
@@ -95,22 +102,35 @@ class ExamController:
         exam_name = self.view.entry_name.get().strip()
         
         if not exam_id or not exam_name:
-            messagebox.showerror("Lỗi", "Mã đề và Tên đề không được để trống")
+            messagebox.showerror("Lỗi", "Mã đề và Tên đề không được để trống", parent=self.view.window)
+            self.view.window.lift()
+            self.view.window.focus_force()
+            if not exam_id: self.view.entry_id.focus()
+            else: self.view.entry_name.focus()
             return
             
         try:
             num = int(self.view.var_num_questions.get())
         except ValueError:
-            messagebox.showerror("Lỗi", "Số câu hỏi không hợp lệ")
+            messagebox.showerror("Lỗi", "Số câu hỏi không hợp lệ", parent=self.view.window)
+            self.view.window.lift()
+            self.view.window.focus_force()
+            self.view.entry_num.focus()
             return
             
         if len(self.view.combo_answers) != num:
-            messagebox.showerror("Lỗi", "Vui lòng bấm 'Tạo lưới đáp án' trước khi lưu")
+            messagebox.showerror("Lỗi", "Vui lòng bấm 'Tạo lưới đáp án' trước khi lưu", parent=self.view.window)
+            self.view.window.lift()
+            self.view.window.focus_force()
+            self.view.entry_num.focus()
             return
             
         answers = [v.get() for v in self.view.combo_answers]
         if any(not a for a in answers):
-            messagebox.showerror("Lỗi", "Vui lòng chọn đầy đủ đáp án")
+            messagebox.showerror("Lỗi", "Vui lòng chọn đầy đủ đáp án", parent=self.view.window)
+            self.view.window.lift()
+            self.view.window.focus_force()
+            if self.view.combo_answers: self.view.combo_answers[0].focus()
             return
             
         answer_key = ",".join(answers)
@@ -119,22 +139,26 @@ class ExamController:
             # Check if updating or adding
             if self.view.entry_id.cget("state") == "readonly":
                 self.exam_model.update_exam(exam_id, exam_name, num, answer_key)
-                messagebox.showinfo("Thành công", "Cập nhật đề thi thành công")
+                messagebox.showinfo("Thành công", "Cập nhật đề thi thành công", parent=self.view.window)
             else:
                 self.exam_model.add_exam(exam_id, exam_name, num, answer_key)
-                messagebox.showinfo("Thành công", "Thêm đề thi mới thành công")
+                messagebox.showinfo("Thành công", "Thêm đề thi mới thành công", parent=self.view.window)
                 
             self.refresh_table()
             self.on_change_callback()
             self.clear_form()
             
         except Exception as e:
-            messagebox.showerror("Lỗi", str(e))
+            messagebox.showerror("Lỗi", str(e), parent=self.view.window)
+            self.view.window.lift()
+            self.view.window.focus_force()
             
     def delete_exam(self):
         selected = self.view.tree.selection()
         if not selected:
-            messagebox.showinfo("Thông báo", "Vui lòng chọn đề thi để xóa")
+            messagebox.showinfo("Thông báo", "Vui lòng chọn đề thi để xóa", parent=self.view.window)
+            self.view.window.lift()
+            self.view.window.focus_force()
             return
             
         item = self.view.tree.item(selected[0])
@@ -147,27 +171,57 @@ class ExamController:
                 self.on_change_callback()
                 self.clear_form()
             except Exception as e:
-                messagebox.showerror("Lỗi", str(e))
+                messagebox.showerror("Lỗi", str(e), parent=self.view.window)
+                self.view.window.lift()
+                self.view.window.focus_force()
                 
     def import_exams(self):
-        filepath = filedialog.askopenfilename(
-            title="Chọn file CSV Đề Thi",
-            filetypes=[("CSV files", "*.csv")]
-        )
-        if filepath:
-            def run_import():
-                try:
-                    msg = self.exam_model.import_csv(filepath)
-                    self.view.window.after(0, lambda: self.on_import_success(msg))
-                except Exception as e:
-                    self.view.window.after(0, lambda: self.on_import_error(str(e)))
-                    
-            threading.Thread(target=run_import, daemon=True).start()
+        cols_info = [
+            ("exam_id", "Mã đề thi (Bắt buộc, không trùng lặp)"),
+            ("exam_name", "Tên đề thi"),
+            ("num_questions", "Số câu hỏi (Bắt buộc, phải là số nguyên > 0)"),
+            ("answer_key", "Đáp án chuẩn (Bắt buộc, cách nhau bởi dấu phẩy, vd: A,B,C)")
+        ]
+        sample = "DE01,Đề thi giữa kỳ 1,10,\"A, B, C, D, A, B, C, D, A, B\""
+        
+        def on_accept():
+            filepath = filedialog.askopenfilename(
+                title="Chọn file CSV Đề Thi",
+                filetypes=[("CSV files", "*.csv")]
+            )
+            if filepath:
+                def run_import():
+                    try:
+                        msg = self.exam_model.import_csv(filepath)
+                        self.view.window.after(0, lambda: self.on_import_success(msg))
+                    except Exception as e:
+                        self.view.window.after(0, lambda: self.on_import_error(str(e)))
+                        
+                threading.Thread(target=run_import, daemon=True).start()
+
+        show_import_guide(self.view.window, "Hướng dẫn Import Đề Thi", cols_info, sample, on_accept)
 
     def on_import_success(self, msg):
         self.refresh_table()
         self.on_change_callback()
-        messagebox.showinfo("Import Thành Công", msg)
+        messagebox.showinfo("Import Thành Công", msg, parent=self.view.window)
         
     def on_import_error(self, err_msg):
-        messagebox.showerror("Lỗi Import", err_msg)
+        messagebox.showerror("Lỗi Import", err_msg, parent=self.view.window)
+        self.view.window.lift()
+        self.view.window.focus_force()
+
+    def export_exams(self):
+        filepath = filedialog.asksaveasfilename(
+            title="Lưu file CSV Đề Thi",
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv")]
+        )
+        if filepath:
+            try:
+                self.exam_model.export_csv(filepath)
+                messagebox.showinfo("Thành công", "Export dữ liệu thành công!", parent=self.view.window)
+            except Exception as e:
+                messagebox.showerror("Lỗi Export", str(e), parent=self.view.window)
+                self.view.window.lift()
+                self.view.window.focus_force()

@@ -57,6 +57,7 @@ class StudentWindow:
         btn_frame = ttk.Frame(main_container)
         btn_frame.pack(side=tk.BOTTOM, fill=tk.X)
         ttk.Button(btn_frame, text="💾 Lưu Thí Sinh", style="Add.TButton", width=20, command=self.controller.save_student).pack(side=tk.RIGHT)
+        ttk.Button(btn_frame, text="📂 Import CSV", style="Action.TButton", width=20, command=self.controller.import_csv).pack(side=tk.LEFT)
 
         # Answer Frame
         ans_frame = ttk.LabelFrame(main_container, text="Bài làm", padding=10)

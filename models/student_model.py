@@ -121,13 +121,18 @@ class StudentModel:
             if os.path.getsize(filepath) == 0:
                 raise ValueError("File CSV rỗng.")
                 
-            new_df = pd.read_csv(filepath, dtype={"student_id": str, "exam_id": str})
+            try:
+                new_df = pd.read_csv(filepath, dtype={"student_id": str, "exam_id": str})
+            except Exception:
+                raise ValueError("Không thể đọc file CSV. Vui lòng kiểm tra lại định dạng file (phải là UTF-8, dấu phẩy ngăn cách).")
+                
             if new_df.empty:
-                raise ValueError("File CSV không có dữ liệu.")
+                raise ValueError("File CSV không có dòng dữ liệu nào.")
                 
             required_cols = {"student_id", "name", "gender", "class_name", "exam_id", "answers"}
-            if not required_cols.issubset(new_df.columns):
-                raise ValueError(f"File CSV cần các cột: {', '.join(required_cols)}")
+            missing_cols = required_cols - set(new_df.columns)
+            if missing_cols:
+                raise ValueError(f"File CSV bị thiếu các cột bắt buộc: {', '.join(missing_cols)}")
             
             records = new_df.to_dict('records')
             valid_records = []
@@ -135,10 +140,14 @@ class StudentModel:
             
             for i, row in enumerate(records):
                 try:
-                    if pd.isna(row['student_id']) or pd.isna(row['exam_id']) or pd.isna(row['answers']):
-                        raise ValueError("Thiếu dữ liệu bắt buộc (ID, Exam, Answers).")
+                    if pd.isna(row['student_id']) or not str(row['student_id']).strip():
+                        raise ValueError("Thiếu Mã TS (student_id).")
+                    if pd.isna(row['exam_id']) or not str(row['exam_id']).strip():
+                        raise ValueError("Thiếu Mã đề thi (exam_id).")
+                    if pd.isna(row['answers']) or not str(row['answers']).strip():
+                        raise ValueError("Thiếu Đáp án (answers).")
                         
-                    c, w, s, g = self.calculate_score(row['exam_id'], row['answers'])
+                    c, w, s, g = self.calculate_score(row['exam_id'], str(row['answers']))
                     row['score'] = s
                     row['correct'] = c
                     row['wrong'] = w
@@ -148,29 +157,34 @@ class StudentModel:
                         row['date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     valid_records.append(row)
                 except Exception as e:
-                    errors.append(f"Dòng {i+2} (Mã TS: {row.get('student_id', 'N/A')}): {str(e)}")
+                    errors.append(f"- Dòng {i+2} (Mã TS: {row.get('student_id', 'N/A')}): {str(e)}")
 
             if not valid_records:
-                err_msg = "\n".join(errors[:5]) + ("\n..." if len(errors) > 5 else "")
+                err_msg = "\n".join(errors[:10]) + ("\n..." if len(errors) > 10 else "")
                 raise ValueError(f"Không có dữ liệu hợp lệ để import. Chi tiết lỗi:\n{err_msg}")
 
             processed_df = pd.DataFrame(valid_records)
             
             # Check duplicate ID within the CSV
-            if processed_df['student_id'].duplicated().any():
-                raise ValueError("File CSV chứa các student_id trùng lặp nhau.")
+            duplicates = processed_df[processed_df.duplicated(['student_id'], keep=False)]
+            if not duplicates.empty:
+                dup_ids = duplicates['student_id'].unique()
+                raise ValueError(f"File CSV chứa các mã thí sinh trùng lặp: {', '.join(dup_ids)}")
                 
             self.df = pd.concat([self.df, processed_df]).drop_duplicates(subset=['student_id'], keep='last').reset_index(drop=True)
             self._save_data()
             
             if errors:
-                return f"Import thành công {len(valid_records)} dòng. Lỗi {len(errors)} dòng."
+                err_msg = "\n".join(errors[:5]) + ("\n..." if len(errors) > 5 else "")
+                return f"Import thành công {len(valid_records)} dòng.\n\nBỏ qua {len(errors)} dòng bị lỗi:\n{err_msg}"
             return f"Import thành công toàn bộ {len(valid_records)} dòng."
             
         except pd.errors.EmptyDataError:
             raise ValueError("File CSV rỗng hoặc định dạng không đọc được.")
+        except ValueError as ve:
+            raise ve
         except Exception as e:
-            raise ValueError(f"Lỗi khi import thí sinh: {str(e)}")
+            raise ValueError(f"Lỗi hệ thống khi import: {str(e)}")
 
     def export_csv(self, filepath):
         self.df.to_csv(filepath, index=False, encoding='utf-8-sig')

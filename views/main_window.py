@@ -69,14 +69,14 @@ class MainWindow:
         toolbar_frame = ttk.Frame(toolbar_container)
         toolbar_frame.pack(anchor=tk.CENTER) # Center the toolbar
         
-        ttk.Button(toolbar_frame, text="➕ Thêm", style="Add.TButton", width=12, command=self.controller.add_student).pack(side=tk.LEFT, padx=5)
-        ttk.Button(toolbar_frame, text="✏️ Sửa", style="Edit.TButton", width=12, command=self.controller.edit_student).pack(side=tk.LEFT, padx=5)
-        ttk.Button(toolbar_frame, text="🗑️ Xóa", style="Delete.TButton", width=12, command=self.controller.delete_student).pack(side=tk.LEFT, padx=5)
+        ttk.Button(toolbar_frame, text="➕ Thêm Thí Sinh", style="Add.TButton", width=16, command=self.controller.add_student).pack(side=tk.LEFT, padx=5)
+        ttk.Button(toolbar_frame, text="✏️ Sửa Thí Sinh", style="Edit.TButton", width=16, command=self.controller.edit_student).pack(side=tk.LEFT, padx=5)
+        ttk.Button(toolbar_frame, text="🗑️ Xóa Thí Sinh", style="Delete.TButton", width=16, command=self.controller.delete_student).pack(side=tk.LEFT, padx=5)
         
         ttk.Separator(toolbar_frame, orient=tk.VERTICAL).pack(side=tk.LEFT, padx=10, fill=tk.Y)
         
-        ttk.Button(toolbar_frame, text="📂 Import", style="Action.TButton", width=12, command=self.controller.import_csv).pack(side=tk.LEFT, padx=5)
-        ttk.Button(toolbar_frame, text="💾 Export", style="Action.TButton", width=12, command=self.controller.export_csv).pack(side=tk.LEFT, padx=5)
+        ttk.Button(toolbar_frame, text="📂 Import Thí Sinh", style="Action.TButton", width=18, command=self.controller.import_csv).pack(side=tk.LEFT, padx=5)
+        ttk.Button(toolbar_frame, text="💾 Export Thí Sinh", style="Action.TButton", width=18, command=self.controller.export_csv).pack(side=tk.LEFT, padx=5)
         
         ttk.Separator(toolbar_frame, orient=tk.VERTICAL).pack(side=tk.LEFT, padx=10, fill=tk.Y)
         
